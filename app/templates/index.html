@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <div>
+        <form method="post" enctype="multipart/form-data">
+          <input type="file" name="file">
+          <input type="submit" value="Upload">
+        </form>
+        {% if filename %}
+          <a href="/docs/out/{{ filename }}" download="translated_{{ filename }}">Скачать файл</a>
+        {% endif %}
+    </div>
+</body>
+</html>
