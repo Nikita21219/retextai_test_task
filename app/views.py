@@ -1,4 +1,4 @@
-from flask import render_template, request, send_from_directory, jsonify, url_for
+from flask import render_template, request, send_from_directory, jsonify, url_for, session
 from tasks import *
 from celery.result import AsyncResult
 
@@ -6,33 +6,33 @@ from celery.result import AsyncResult
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
-        print('post reauest')
+        print('post request')
         f = request.files['file']
         try:
             docx_files.save(f)
             task = translate.delay(f.filename)
-            return render_template("index.html", task_id=task.id)
+            session['task_id'] = task.id
+            return render_template("index.html")
             # return jsonify(task_id=task.id)
         except:
             return render_template('index.html', error="Произошла ошибка при загрузке файла")
     return render_template('index.html')
 
 
-@app.route('/status/<task_id>')
-def task_status(task_id):
+@app.route('/status')
+def task_status():
     # проверяем статус задачи с указанным ID
-    status = AsyncResult(task_id, app=celery).status
-    print(f"\nCheck status: {status} task_id: {task_id}\n")
+    status = AsyncResult(session['task_id'], app=celery).status
+    print(f"\nCheck status: {status} task_id: {session['task_id']}\n")
 
     if status == 'SUCCESS':
-        return render_template('index.html', filename="en_retext_ai.docx")
-        # return render_template('success.html', file_url=url_for('download_file', filename='processed_file.csv'))
+        link = "/" + DOC_OUT_DIR + "/" + "en_retext_ai.docx"
+        return jsonify(status=status, link=link)
 
-    # если задача еще не выполнена, отображаем сообщение ожидания
-    print("\nзадача еще не выполнена\n")
-    return render_template('index.html', task_id=task_id, error="Waiting...")
+    return jsonify(status=status)
 
 
 @app.route(f'/{DOC_OUT_DIR}/<path:filename>', methods=['GET', 'POST'])
 def download(filename):
+    print("TEST!")
     return send_from_directory(directory=DOC_OUT_DIR, path=filename)
