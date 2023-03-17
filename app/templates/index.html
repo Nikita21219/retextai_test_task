@@ -6,13 +6,102 @@
 </head>
 <body>
     <div>
-        <form method="post" enctype="multipart/form-data">
-          <input type="file" name="file">
-          <input type="submit" value="Upload">
+        <form action="/" method="post" enctype="multipart/form-data">
+            <input type="file" name="file" id="fileInput">
+            <button type="button">Загрузить файл</button>
         </form>
         {% if filename %}
-          <a href="/docs/out/{{ filename }}" download="translated_{{ filename }}">Скачать файл</a>
+            <a href="/docs/out/{{ filename }}" download="translated_{{ filename }}">Скачать файл</a>
+        {% elif error %}
+            <h1>{{ error }}</h1>
         {% endif %}
+
+        <input name="task_id" value="{{ task_id }}">
+        <div id="status"></div>
+
     </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <script>
+
+    $(function() {
+      $('form').on('click', function(event) {
+        $('#status').text('Обработка файла...');
+        $('#download').hide();
+
+        setTimeout(function() {
+          checkStatus($('#task_id').val());
+        }, 1000);
+      });
+
+      function checkStatus(task_id) {
+        $.ajax({
+          type: 'GET',
+          url: '/status/' + task_id,
+          success: function(response) {
+            if (response.status == 'SUCCESS') {
+              $('#status').text('Файл обработан!');
+              $('#download').show();
+            } else {
+              setTimeout(function() { checkStatus(task_id); }, 1000);
+            }
+          }
+        });
+      }
+    });
+
+    // function uploadFile() {
+    //     var fileInput = document.getElementById('fileInput');
+    //     var file = fileInput.files[0];
+    //     var xhr = new XMLHttpRequest();
+    //     xhr.open('POST', '/', true);
+    //     xhr.setRequestHeader('Content-type', 'multipart/form-data');
+    //     xhr.onload = function() {
+    //         if (xhr.status === 200) {
+    //             var response = JSON.parse(xhr.responseText);
+    //             var task_id = response.task_id;
+    //             checkTaskStatus(task_id);
+    //         }
+    //     };
+    //     xhr.send(file);
+    // }
+    //
+    // function checkTaskStatus(task_id) {
+    //     var xhr = new XMLHttpRequest();
+    //     xhr.open('GET', '/status/' + task_id, true);
+    //     xhr.onreadystatechange = function () {
+    //         if(xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+    //             console.log(xhr.responseText);
+    //         }
+    //     };
+    //     xhr.onload = function() {
+    //         if (xhr.status === 200) {
+    //             alert('status code: ' + xhr.status);
+    //             var response = JSON.parse(xhr.responseText);
+    //             if (response.status === 'done') {
+    //                 var result_url = response.result;
+    //                 // Show download button
+    //                 var downloadLink = document.createElement('a');
+    //                 downloadLink.textContent = 'Download File';
+    //                 downloadLink.href = result_url;
+    //                 downloadLink.download = 'file.txt';
+    //                 document.body.appendChild(downloadLink);
+    //             } else if (response.status === 'in progress') {
+    //                 // Show "processing" message
+    //                 var processingDiv = document.createElement('div');
+    //                 processingDiv.textContent = 'Processing...';
+    //                 document.body.appendChild(processingDiv);
+    //                 setTimeout(checkTaskStatus, 1000, task_id);
+    //             } else {
+    //                 alert('TEST');
+    //             }
+    //         } else {
+    //             alert('status code: ' + xhr.status);
+    //         }
+    //     }
+    // }
+    </script>
+
 </body>
 </html>
