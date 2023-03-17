@@ -7,9 +7,10 @@
     <script>
 
     $(function() {
+      var intervalId;
       $('form').on('submit', function(event) {
         event.preventDefault();
-
+        $('#download').hide();
         $('#message').show();
         $.ajax({
           url: '/',
@@ -18,19 +19,22 @@
           processData: false,
           contentType: false,
           success: function(data) {
-            setInterval(function () {
+            intervalId = setInterval(function () {
               $.getJSON('/status', function (data) {
                 if (data.status == 'SUCCESS') {
-                  console.log('test');
                   $('#message').hide();
                   $('#download').attr('href', data.link).show();
+                  clearInterval(intervalId);
                 } else if (data.status == 'FAILURE') {
                   $('#message').text('Ошибка обработки файла').show();
                   $('#download').hide();
                 }
               });
             }, 1000);
-          }
+          },
+          error: function (result) {
+            $('#message').text('Ошибка обработки файла').show();
+          },
         });
       });
     });
@@ -42,7 +46,7 @@
       <input type="file" name="file" id="fileInput">
       <button id="myButton" type="submit">Загрузить файл</button>
       <p id="message" style="display: none;">Обработка файла...</p>
-      <a id="download" style="display: none;">Скачать файл</a>
+      <p><a id="download" style="display: none;">Скачать файл</a></p>
     </form>
 
   </body>

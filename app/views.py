@@ -1,38 +1,35 @@
 from flask import render_template, request, send_from_directory, jsonify, url_for, session
 from tasks import *
 from celery.result import AsyncResult
+from utils import allowed_file
 
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
-        print('post request')
-        f = request.files['file']
-        try:
-            docx_files.save(f)
-            task = translate.delay(f.filename)
+        file = request.files['file']
+        if file and allowed_file(file):
+            filename = docx_files.save(file)
+            task = translate.delay(filename)
             session['task_id'] = task.id
+            session['filename'] = filename
             return render_template("index.html")
-            # return jsonify(task_id=task.id)
-        except:
-            return render_template('index.html', error="Произошла ошибка при загрузке файла")
+        else:
+            return jsonify("Произошла ошибка при загрузке файла"), 403
     return render_template('index.html')
 
 
 @app.route('/status')
 def task_status():
-    # проверяем статус задачи с указанным ID
     status = AsyncResult(session['task_id'], app=celery).status
-    print(f"\nCheck status: {status} task_id: {session['task_id']}\n")
-
     if status == 'SUCCESS':
-        link = "/" + DOC_OUT_DIR + "/" + "en_retext_ai.docx"
+        link = f"{PREFIX}_{session['filename']}"
         return jsonify(status=status, link=link)
 
     return jsonify(status=status)
 
 
-@app.route(f'/{DOC_OUT_DIR}/<path:filename>', methods=['GET', 'POST'])
+@app.route(f'/<path:filename>', methods=['GET', 'POST'])
 def download(filename):
-    print("TEST!")
+    delete_file.apply_async(args=[filename, ], countdown=600)
     return send_from_directory(directory=DOC_OUT_DIR, path=filename)
