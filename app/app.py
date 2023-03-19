@@ -1,29 +1,14 @@
 from flask import Flask
-from flask_uploads import UploadSet, DOCUMENTS, configure_uploads
 import os
 from celery import Celery
-from flask import render_template, request, send_from_directory, jsonify, url_for, session
-from tasks import *
+from flask import render_template, request, send_from_directory, jsonify, session
+from flask_uploads import configure_uploads
 from celery.result import AsyncResult
-# from utils import allowed_file
-import magic
-import io
+from file_translator import FileTranslator
+from utils import *
 
 
-def allowed_file(file):
-    if not docx_files.file_allowed(file, file.filename):
-        return False
-    buffer = io.BytesIO()
-    file.save(buffer)
-    mime = magic.from_buffer(buffer.getvalue(), mime=True)
-    file.stream.seek(0)
-    allowed_mimes = [
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/msword'
-    ]
-    return mime in allowed_mimes
-
-
+# configs
 DOC_IN_DIR = f'docs{os.sep}in{os.sep}'
 DOC_OUT_DIR = f'docs{os.sep}out{os.sep}'
 PREFIX = 'en'
@@ -37,13 +22,31 @@ app.config['UPLOADED_DOCUMENTS_DEST'] = os.path.join(basedir, DOC_IN_DIR)
 app.config['CELERY_BROKER_URL'] = f'redis://{os.getenv("REDIS_HOST")}:6379/0'
 app.config['CELERY_RESULT_BACKEND'] = f'redis://{os.getenv("REDIS_HOST")}:6379/0'
 
-docx_files = UploadSet('documents', DOCUMENTS)
 configure_uploads(app, docx_files)
 
 celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
 celery.conf.update(app.config)
 
 
+# celery tasks
+@celery.task
+def translate(filename):
+    src = f"{DOC_IN_DIR}{filename}"
+    dest = f"{DOC_OUT_DIR}{PREFIX}_{filename}"
+    ft = FileTranslator()
+    ft.translate(src, dest)
+    os.remove(os.path.join(basedir, src))
+
+
+@celery.task
+def delete_file(filename):
+    try:
+        os.remove(f"{os.path.join(basedir, DOC_OUT_DIR)}{filename}")
+    except FileNotFoundError:
+        return
+
+
+# routes
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
@@ -65,7 +68,6 @@ def task_status():
     if status == 'SUCCESS':
         link = f"{PREFIX}_{session['filename']}"
         return jsonify(status=status, link=link)
-
     return jsonify(status=status)
 
 
@@ -73,7 +75,3 @@ def task_status():
 def download(filename):
     delete_file.apply_async(args=[filename, ], countdown=600)
     return send_from_directory(directory=DOC_OUT_DIR, path=filename)
-
-
-if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)

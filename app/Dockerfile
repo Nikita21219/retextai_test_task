@@ -15,4 +15,4 @@ WORKDIR /app
 
 RUN sed -i "s|from werkzeug import secure_filename, FileStorage|from werkzeug.utils import secure_filename\nfrom werkzeug.datastructures import FileStorage|g" /usr/local/lib/python3.8/site-packages/flask_uploads.py
 
-CMD ["celery", "-A", "tasks.celery", "worker", "--loglevel=INFO"]
+CMD ["celery", "-A", "app.celery", "worker", "--loglevel=INFO"]

@@ -1,6 +1,9 @@
 import magic
 import io
-from app import docx_files
+from flask_uploads import UploadSet, DOCUMENTS
+
+
+docx_files = UploadSet('documents', DOCUMENTS)
 
 
 def allowed_file(file):
