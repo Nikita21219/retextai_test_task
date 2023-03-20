@@ -35,7 +35,7 @@ def translate(filename):
     dest = f"{DOC_OUT_DIR}{PREFIX}_{filename}"
     ft = FileTranslator()
     ft.translate(src, dest)
-    os.remove(os.path.join(basedir, src))
+    delete_file.apply_async(args=[os.path.join(basedir, src), ], countdown=20)
 
 
 @celery.task
@@ -71,9 +71,9 @@ def task_status():
     return jsonify(status=status)
 
 
-@app.route(f'/<path:filename>', methods=['GET', 'POST'])
+@app.route(f'/<path:filename>', methods=['GET'])
 def download(filename):
-    delete_file.apply_async(args=[filename, ], countdown=600)
+    delete_file.apply_async(args=[filename, ], countdown=20)
     return send_from_directory(directory=DOC_OUT_DIR, path=filename)
 
 

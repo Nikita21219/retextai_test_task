@@ -1,0 +1,76 @@
+version: '3.9'
+
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+    container_name: doc_translator_nginx
+    ports:
+      - "80:80"
+    depends_on:
+      flask:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - doc_translator_net
+
+  flask:
+    build: app/
+    command: gunicorn --bind 0.0.0.0:5000 app:app
+    container_name: doc_translator_flask
+    healthcheck:
+      test: [ "CMD-SHELL", "curl --fail http://localhost:5000 || exit 1" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    environment:
+      SECRET_KEY: ${SECRET_KEY}
+      PYTHONUNBUFFERED: True
+    restart: unless-stopped
+    depends_on:
+      celery:
+        condition: service_healthy
+    volumes:
+      - doc_translator_documents:/app/docs
+    expose:
+      - 5000
+    networks:
+      - doc_translator_net
+
+  celery:
+    build: app/
+    container_name: doc_translator_celery_worker
+    environment:
+      REDIS_HOST: redis
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "celery -A app.celery inspect ping" ]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - doc_translator_documents:/app/docs
+    networks:
+      - doc_translator_net
+
+  redis:
+    image: redis:alpine3.17
+    restart: unless-stopped
+    container_name: doc_translator_redis
+    healthcheck:
+      test: [ "CMD-SHELL", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - doc_translator_net
+
+networks:
+  doc_translator_net:
+
+volumes:
+  doc_translator_documents:

@@ -25,10 +25,3 @@ class FileTranslator:
             self.translate_table(table)
 
         doc.save(output_path)
-
-
-if __name__ == "__main__":
-    inpath = 'docs/example/2.docx'
-    outpath = 'docs/out/2_en.docx'
-    ft = FileTranslator()
-    ft.translate(inpath, outpath)
