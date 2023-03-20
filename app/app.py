@@ -75,3 +75,7 @@ def task_status():
 def download(filename):
     delete_file.apply_async(args=[filename, ], countdown=600)
     return send_from_directory(directory=DOC_OUT_DIR, path=filename)
+
+
+if __name__ == "__main__":
+    app.run()
