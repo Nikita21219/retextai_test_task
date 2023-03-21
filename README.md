@@ -12,3 +12,4 @@ Implemented:
 - WSGI server (Gunicorn) for running the Flask application
 - AJAX requests for asynchronous file processing
 - Checking the validity of the file content before downloading to the host and processing.
+- UNIT tests
