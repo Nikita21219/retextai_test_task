@@ -1,6 +1,7 @@
 # retextai_test_task
 
-Usage: docker-compose up -d
+Usage: 
+touch .env && echo SECRET_KEY=YOUR_SECRET_KEY > .env && docker-compose up -d
 
 Implemented:
 - Docker-compose file for building the project in a single command
@@ -11,4 +12,3 @@ Implemented:
 - WSGI server (Gunicorn) for running the Flask application
 - AJAX requests for asynchronous file processing
 - Checking the validity of the file content before downloading to the host and processing.
-
