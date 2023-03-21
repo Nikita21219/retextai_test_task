@@ -1,7 +1,7 @@
 # retextai_test_task
 
 Usage: 
-touch .env && echo SECRET_KEY=YOUR_SECRET_KEY > .env && docker-compose up -d
+echo SECRET_KEY=YOUR_SECRET_KEY > .env && docker-compose up -d
 
 Implemented:
 - Docker-compose file for building the project in a single command
